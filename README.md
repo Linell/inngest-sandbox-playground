@@ -6,6 +6,9 @@ The agent's work from this demo lives in [Linell/stunning-pancake](https://githu
 
 > Sandboxes are experimental. The Python API (`inngest.experimental.sandbox`) can change without a major version bump.
 
+<img width="2053" height="1070" alt="Screenshot 2026-10-30 at 9 52 02 AM" src="https://github.com/user-attachments/assets/0402968d-f006-41ae-8a25-6e9621ec9b48" />
+
+
 ## What it demonstrates
 
 - **The function is the orchestrator.** `agent-session` runs a Claude tool-use loop inside an Inngest function. Each Claude call is a `step.run`, and the function holds `ANTHROPIC_API_KEY`. The sandbox never sees it.
