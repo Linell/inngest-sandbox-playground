@@ -25,6 +25,9 @@ from anthropic.types import (
     ToolParam,
     ToolResultBlockParam,
 )
+
+# Private API for trace spans; a public helper is coming to the Python SDK.
+from inngest._internal import run_context
 from inngest.experimental.sandbox import (
     DurableSandboxSync,
     SandboxCommandResult,
@@ -79,7 +82,11 @@ def agent_session(ctx: inngest.ContextSync) -> dict[str, typing.Any]:
         base = ctx.step.run("checkout", checkout, sandbox.id, branch)
         if base is None:
             seed_persona(sandbox, user)
-        summary, turns = run_agent(ctx, sandbox, prompt, read_context(sandbox))
+        context = read_context(sandbox)
+        with run_context.use_span(
+            run_context.Span(id="agent", name=f"Agent {user}", kind="agent")
+        ):
+            summary, turns = run_agent(ctx, sandbox, prompt, context)
         commit = commit_and_push(ctx, sandbox, branch, base, summary)
 
     return {
@@ -248,9 +255,11 @@ def run_tool_calls(
 ) -> list[ToolResultBlockParam]:
     results: list[ToolResultBlockParam] = []
     for i, block in enumerate(b for b in content if b["type"] == "tool_use"):
-        output, is_error = run_tool(
-            sandbox, f"tool-{turn}.{i}-{block['name']}", block["name"], block["input"]
-        )
+        step_id = f"tool-{turn}.{i}-{block['name']}"
+        with run_context.use_span(
+            run_context.Span(id=step_id, name=block["name"], kind="tool")
+        ):
+            output, is_error = run_tool(sandbox, step_id, block["name"], block["input"])
         results.append(
             {
                 "type": "tool_result",
